@@ -1,0 +1,8 @@
+{
+    "media_folder": "media",
+    "theme": "calm_green",
+    "default_compress": true,
+    "max_downloads": 1,
+    "window_width": 1400,
+    "window_height": 900
+}
