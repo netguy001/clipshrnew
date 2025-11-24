@@ -37,7 +37,17 @@ from PyQt5.QtWidgets import (
     QSizePolicy,
     QSplitter,
 )
-from PyQt5.QtCore import Qt, QThread, pyqtSignal, QSize, QDir, QUrl, QTimer
+from PyQt5.QtCore import (
+    Qt,
+    QThread,
+    pyqtSignal,
+    QSize,
+    QDir,
+    QUrl,
+    QTimer,
+    QPropertyAnimation,
+    QEasingCurve,
+)
 from PyQt5.QtGui import (
     QFont,
     QIcon,
@@ -53,88 +63,96 @@ from PyQt5.QtGui import (
 CONFIG_FILE = "config.json"
 HISTORY_FILE = "history.json"
 
-# --- Clean, Professional Color Palettes (Like Your Reference UI) ---
+# --- Professional Color Palettes (Improved & Extended) ---
 PALETTES = {
     "light": {
         "name": "Light Mode (Default)",
-        "BG_MAIN": "#F8FAFB",
-        "BG_CARD": "#FFFFFF",
-        "TEXT_PRIMARY": "#333333",
-        "TEXT_SECONDARY": "#6C757D",
-        "ACCENT_BLUE": "#4A90E2",
-        "ACCENT_GREEN": "#2ECC71",
-        "ACCENT_RED": "#E74C3C",
-        "ACCENT_PURPLE": "#9B59B6",
-        "BORDER": "#DEE2E6",
-    },
-    "dark": {
-        "name": "Dark Mode (Slate)",
-        "BG_MAIN": "#2C3E50",
-        "BG_CARD": "#34495E",
-        "TEXT_PRIMARY": "#ECEFF1",
-        "TEXT_SECONDARY": "#B0BEC5",
-        "ACCENT_BLUE": "#5DADE2",
-        "ACCENT_GREEN": "#27AE60",
-        "ACCENT_RED": "#E74C3C",
-        "ACCENT_PURPLE": "#BB8FCE",
-        "BORDER": "#455A64",
-    },
-    "calm_green": {
-        "name": "Calm Green",
-        "BG_MAIN": "#F1F8F4",
+        "BG_MAIN": "#F5F7FA",
         "BG_CARD": "#FFFFFF",
         "TEXT_PRIMARY": "#2C3E50",
         "TEXT_SECONDARY": "#7F8C8D",
         "ACCENT_BLUE": "#3498DB",
         "ACCENT_GREEN": "#27AE60",
         "ACCENT_RED": "#E74C3C",
-        "ACCENT_PURPLE": "#16A085",
-        "BORDER": "#D5E8DC",
+        "ACCENT_ORANGE": "#E67E22",
+        "BORDER": "#E1E8ED",
     },
-    "deep_ocean": {
-        "name": "Deep Ocean",
-        "BG_MAIN": "#E3F2FD",
-        "BG_CARD": "#FFFFFF",
-        "TEXT_PRIMARY": "#1565C0",
-        "TEXT_SECONDARY": "#546E7A",
-        "ACCENT_BLUE": "#1976D2",
-        "ACCENT_GREEN": "#00ACC1",
-        "ACCENT_RED": "#E53935",
-        "ACCENT_PURPLE": "#5E35B1",
-        "BORDER": "#BBDEFB",
+    "dark": {
+        "name": "Dark Mode (Professional)",
+        "BG_MAIN": "#1E2430",
+        "BG_CARD": "#2C3440",
+        "TEXT_PRIMARY": "#E8EAED",
+        "TEXT_SECONDARY": "#9AA0A6",
+        "ACCENT_BLUE": "#5DADE2",
+        "ACCENT_GREEN": "#2ECC71",
+        "ACCENT_RED": "#EC7063",
+        "ACCENT_ORANGE": "#F39C12",
+        "BORDER": "#404854",
     },
-    "corporate": {
-        "name": "Corporate Grey",
-        "BG_MAIN": "#F5F5F5",
+    "ocean": {
+        "name": "Ocean Blue",
+        "BG_MAIN": "#0A1929",
+        "BG_CARD": "#132F4C",
+        "TEXT_PRIMARY": "#B2BAC2",
+        "TEXT_SECONDARY": "#6B7A90",
+        "ACCENT_BLUE": "#66B2FF",
+        "ACCENT_GREEN": "#5BE49B",
+        "ACCENT_RED": "#FF6B6B",
+        "ACCENT_ORANGE": "#FFA94D",
+        "BORDER": "#1E3A5F",
+    },
+    "forest": {
+        "name": "Forest Green",
+        "BG_MAIN": "#F1F8F4",
         "BG_CARD": "#FFFFFF",
-        "TEXT_PRIMARY": "#212121",
-        "TEXT_SECONDARY": "#757575",
-        "ACCENT_BLUE": "#1976D2",
-        "ACCENT_GREEN": "#388E3C",
+        "TEXT_PRIMARY": "#1B4332",
+        "TEXT_SECONDARY": "#52796F",
+        "ACCENT_BLUE": "#2D6A4F",
+        "ACCENT_GREEN": "#40916C",
         "ACCENT_RED": "#D32F2F",
-        "ACCENT_PURPLE": "#7B1FA2",
-        "BORDER": "#E0E0E0",
+        "ACCENT_ORANGE": "#F4A261",
+        "BORDER": "#D8F3DC",
+    },
+    "midnight": {
+        "name": "Midnight Purple",
+        "BG_MAIN": "#1A1625",
+        "BG_CARD": "#2D2438",
+        "TEXT_PRIMARY": "#E0DEF2",
+        "TEXT_SECONDARY": "#9D97B5",
+        "ACCENT_BLUE": "#9D4EDD",
+        "ACCENT_GREEN": "#06FFA5",
+        "ACCENT_RED": "#FF006E",
+        "ACCENT_ORANGE": "#FFBE0B",
+        "BORDER": "#3E3551",
     },
 }
 
 
 def generate_qss(palette_key):
-    """Generates clean QSS stylesheet based on selected palette."""
+    """Generates professional QSS stylesheet based on selected palette."""
     if palette_key not in PALETTES:
         palette_key = "light"
     p = PALETTES[palette_key]
 
     # Calculate hover/press colors
     accent_qcolor = QColor(p["ACCENT_BLUE"])
-    accent_hover = accent_qcolor.lighter(110).name()
-    accent_press = accent_qcolor.darker(110).name()
+    accent_hover = accent_qcolor.lighter(115).name()
+    accent_press = accent_qcolor.darker(115).name()
+
+    # Determine if dark theme
+    is_dark = QColor(p["BG_MAIN"]).lightness() < 128
+    selection_bg = (
+        QColor(p["ACCENT_BLUE"]).lighter(150).name()
+        if not is_dark
+        else QColor(p["ACCENT_BLUE"]).darker(150).name()
+    )
 
     qss = f"""
-        /* ===== CLEAN GENERAL STYLES ===== */
+        /* ===== GENERAL STYLES ===== */
         QMainWindow, QWidget {{
             background-color: {p['BG_MAIN']};
             color: {p['TEXT_PRIMARY']};
-            font-family: "Segoe UI", "Helvetica Neue", "Arial", sans-serif;
+            font-family: "Segoe UI", "Roboto", "Inter", sans-serif;
             font-size: 10pt;
         }}
         
@@ -143,39 +161,42 @@ def generate_qss(palette_key):
             background: transparent;
         }}
 
-        /* ===== CLEAN TABS ===== */
+        /* ===== TABS ===== */
         QTabWidget::pane {{ 
             border: none;
             background-color: {p['BG_MAIN']};
+            border-radius: 8px;
         }}
         QTabBar::tab {{
-            background: transparent; 
-            border: none;
-            border-bottom: 3px solid transparent;
+            background: {p['BG_CARD']}; 
+            border: 1px solid {p['BORDER']};
+            border-bottom: none;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
             padding: 12px 24px;
-            margin-right: 2px;
+            margin-right: 4px;
             font-weight: 500;
-            font-size: 11pt;
             color: {p['TEXT_SECONDARY']};
         }}
         QTabBar::tab:selected {{
+            background: {p['BG_MAIN']};
             color: {p['ACCENT_BLUE']};
-            border-bottom: 3px solid {p['ACCENT_BLUE']};
             font-weight: 600;
+            border-bottom: 3px solid {p['ACCENT_BLUE']};
         }}
         QTabBar::tab:hover {{
-            color: {p['ACCENT_BLUE']};
+            background: {QColor(p['BG_CARD']).lighter(105).name()};
         }}
 
-        /* ===== CLEAN BUTTONS ===== */
+        /* ===== BUTTONS ===== */
         QPushButton {{
             background-color: {p['ACCENT_BLUE']};
             color: white;
             border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
+            padding: 12px 20px;
+            border-radius: 8px;
             font-weight: 600;
-            min-height: 36px;
+            min-height: 38px;
             font-size: 10pt;
         }}
         QPushButton:hover {{
@@ -185,17 +206,17 @@ def generate_qss(palette_key):
             background-color: {accent_press};
         }}
         QPushButton:disabled {{
-            background-color: {p['BORDER']};
-            color: {p['TEXT_SECONDARY']};
+            background-color: {p['TEXT_SECONDARY']};
+            color: {p['BG_CARD']};
         }}
         
         QPushButton#SecondaryButton {{
-            background-color: transparent;
+            background-color: {p['BG_CARD']};
             color: {p['TEXT_PRIMARY']};
             border: 2px solid {p['BORDER']};
         }}
         QPushButton#SecondaryButton:hover {{
-            background-color: {p['BG_CARD']};
+            background-color: {QColor(p['BG_CARD']).lighter(105).name()};
             border-color: {p['ACCENT_BLUE']};
         }}
         
@@ -203,101 +224,101 @@ def generate_qss(palette_key):
             background-color: {p['ACCENT_RED']};
         }}
         QPushButton#DangerButton:hover {{
-            background-color: {QColor(p['ACCENT_RED']).darker(110).name()};
+            background-color: {QColor(p['ACCENT_RED']).darker(115).name()};
         }}
 
-        /* ===== CLEAN INPUT FIELDS ===== */
+        /* ===== INPUT FIELDS ===== */
         QLineEdit {{
-            border: 1px solid {p['BORDER']};
-            padding: 10px 12px;
-            border-radius: 6px;
+            border: 2px solid {p['BORDER']};
+            padding: 12px 16px;
+            border-radius: 8px;
             background-color: {p['BG_CARD']};
             color: {p['TEXT_PRIMARY']};
-            min-height: 38px;
+            min-height: 40px;
             font-size: 10pt;
         }}
         QLineEdit:focus {{
             border-color: {p['ACCENT_BLUE']};
-            border-width: 2px;
         }}
 
-        /* ===== CLEAN GROUP BOXES ===== */
+        /* ===== GROUP BOXES (CARDS) ===== */
         QGroupBox {{
             background-color: {p['BG_CARD']};
             border: 1px solid {p['BORDER']};
-            border-radius: 8px;
-            margin-top: 16px; 
-            padding: 16px 12px 12px 12px;
+            border-radius: 12px;
+            margin-top: 20px; 
+            padding: 20px 15px 15px 15px;
             font-weight: 600;
         }}
         QGroupBox::title {{
             subcontrol-origin: margin;
             subcontrol-position: top left;
-            padding: 4px 8px;
+            padding: 5px 10px;
             color: {p['ACCENT_BLUE']};
-            font-weight: 600;
+            font-weight: bold;
             font-size: 11pt;
-            background: transparent;
+            background-color: {p['BG_CARD']};
+            border-radius: 4px;
         }}
 
-        /* ===== CLEAN PROGRESS BAR ===== */
+        /* ===== PROGRESS BAR ===== */
         QProgressBar {{
-            border: 1px solid {p['BORDER']};
-            border-radius: 6px;
+            border: none;
+            border-radius: 8px;
             text-align: center;
             color: {p['TEXT_PRIMARY']};
-            background-color: {p['BG_CARD']};
-            height: 24px;
+            background-color: {p['BORDER']};
+            height: 28px;
             font-weight: 600;
         }}
         QProgressBar::chunk {{
-            background-color: {p['ACCENT_BLUE']};
-            border-radius: 5px;
+            background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                stop:0 {p['ACCENT_GREEN']}, stop:1 {p['ACCENT_BLUE']});
+            border-radius: 8px;
         }}
 
-        /* ===== CLEAN TABLE ===== */
+        /* ===== TABLE WIDGET ===== */
         QTableWidget {{
             background-color: {p['BG_CARD']};
             border: 1px solid {p['BORDER']};
-            border-radius: 6px;
+            border-radius: 8px;
             gridline-color: {p['BORDER']};
-            selection-background-color: {QColor(p['ACCENT_BLUE']).lighter(180).name()};
+            selection-background-color: {selection_bg};
         }}
         QHeaderView::section {{
             background-color: {p['BG_CARD']};
-            color: {p['TEXT_PRIMARY']};
-            padding: 8px;
+            color: {p['ACCENT_BLUE']};
+            padding: 10px;
             border: none;
             border-bottom: 2px solid {p['BORDER']};
-            font-weight: 600;
+            font-weight: bold;
             font-size: 10pt;
         }}
         
-        /* ===== CLEAN LIST WIDGET (LIKE REFERENCE UI) ===== */
+        /* ===== LIST WIDGET ===== */
         QListWidget {{
             border: 1px solid {p['BORDER']};
-            border-radius: 6px;
+            border-radius: 8px;
             background-color: {p['BG_CARD']};
-            padding: 4px;
+            padding: 8px;
             outline: none;
         }}
         QListWidget::item {{
-            padding: 10px 12px;
-            background-color: transparent;
-            border: none;
-            border-bottom: 1px solid {p['BORDER']};
-            color: {p['TEXT_PRIMARY']};
-            font-family: "Consolas", "Courier New", monospace;
-            font-size: 9pt;
+            margin-bottom: 6px;
+            padding: 12px;
+            background-color: {p['BG_MAIN']}; 
+            border: 1px solid {p['BORDER']};
+            border-radius: 8px;
+            font-size: 10pt;
         }}
         QListWidget::item:hover {{
-            background-color: {QColor(p['ACCENT_BLUE']).lighter(195).name()};
+            background-color: {QColor(p['BG_MAIN']).lighter(105).name()};
+            border-color: {p['ACCENT_BLUE']};
         }}
         QListWidget::item:selected {{
-            background-color: {QColor(p['ACCENT_BLUE']).lighter(180).name()};
+            background-color: {selection_bg};
+            border: 2px solid {p['ACCENT_BLUE']};
             color: {p['TEXT_PRIMARY']};
-            font-weight: 600;
-            border-left: 3px solid {p['ACCENT_BLUE']};
         }}
         
         /* ===== CHECKBOX ===== */
@@ -306,9 +327,9 @@ def generate_qss(palette_key):
             spacing: 8px;
         }}
         QCheckBox::indicator {{
-            width: 18px;
-            height: 18px;
-            border-radius: 3px;
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
             border: 2px solid {p['BORDER']};
             background-color: {p['BG_CARD']};
         }}
@@ -321,12 +342,12 @@ def generate_qss(palette_key):
         QRadioButton {{
             color: {p['TEXT_PRIMARY']};
             spacing: 8px;
-            padding: 4px;
+            padding: 6px;
         }}
         QRadioButton::indicator {{
-            width: 16px;
-            height: 16px;
-            border-radius: 8px;
+            width: 18px;
+            height: 18px;
+            border-radius: 9px;
             border: 2px solid {p['BORDER']};
             background-color: {p['BG_CARD']};
         }}
@@ -335,19 +356,23 @@ def generate_qss(palette_key):
             border-color: {p['ACCENT_BLUE']};
         }}
         
-        /* ===== SCROLL BAR ===== */
+        /* ===== SCROLL AREA ===== */
+        QScrollArea {{
+            border: none;
+            background-color: transparent;
+        }}
         QScrollBar:vertical {{
             background: {p['BG_MAIN']};
-            width: 10px;
-            border-radius: 5px;
+            width: 12px;
+            border-radius: 6px;
         }}
         QScrollBar::handle:vertical {{
             background: {p['BORDER']};
-            border-radius: 5px;
+            border-radius: 6px;
             min-height: 30px;
         }}
         QScrollBar::handle:vertical:hover {{
-            background: {p['TEXT_SECONDARY']};
+            background: {p['ACCENT_BLUE']};
         }}
     """
     return qss
@@ -438,42 +463,44 @@ def is_image_url(url):
     return ext in [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".tiff", ".svg"]
 
 
-# --- Simple Loading Overlay (Clean Design) ---
+# --- Enhanced Loading Overlay with Animation ---
 
 
 class LoadingOverlay(QWidget):
-    """Clean loading overlay with spinning animation."""
+    """Professional loading overlay with animated spinner."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setAttribute(Qt.WA_StyledBackground, True)
         self.setAttribute(Qt.WA_TranslucentBackground, True)
 
+        # Semi-transparent dark background
         self.setStyleSheet(
             """
             LoadingOverlay {
-                background-color: rgba(0, 0, 0, 120);
+                background-color: rgba(0, 0, 0, 150);
                 border-radius: 12px;
             }
         """
         )
 
+        # Layout
         layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignCenter)
 
-        # Spinner
+        # Spinning loader label
         self.spinner_label = QLabel()
-        self.spinner_label.setFixedSize(60, 60)
+        self.spinner_label.setFixedSize(80, 80)
         self.spinner_label.setStyleSheet("background: transparent;")
         layout.addWidget(self.spinner_label, alignment=Qt.AlignCenter)
 
-        # Message
+        # Message label
         self.message_label = QLabel("Loading...")
         self.message_label.setAlignment(Qt.AlignCenter)
         self.message_label.setStyleSheet(
             """
             color: white; 
-            font-size: 14pt; 
+            font-size: 16pt; 
             font-weight: 600;
             background: transparent;
             padding: 10px;
@@ -481,7 +508,7 @@ class LoadingOverlay(QWidget):
         )
         layout.addWidget(self.message_label)
 
-        # Animation
+        # Spinner animation
         self.rotation_angle = 0
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.rotate_spinner)
@@ -489,30 +516,32 @@ class LoadingOverlay(QWidget):
         self.hide()
 
     def rotate_spinner(self):
-        """Rotates the spinner."""
-        self.rotation_angle = (self.rotation_angle + 12) % 360
+        """Rotates the spinner animation."""
+        self.rotation_angle = (self.rotation_angle + 10) % 360
         self.update_spinner()
 
     def update_spinner(self):
-        """Draws rotating spinner."""
-        pixmap = QPixmap(60, 60)
+        """Draws the rotating spinner."""
+        pixmap = QPixmap(80, 80)
         pixmap.fill(Qt.transparent)
 
         painter = QPainter(pixmap)
         painter.setRenderHint(QPainter.Antialiasing)
 
+        # Draw spinning arcs
         pen = painter.pen()
-        pen.setWidth(4)
+        pen.setWidth(6)
         pen.setCapStyle(Qt.RoundCap)
-        pen.setColor(QColor("#4A90E2"))
+        pen.setColor(QColor("#3498DB"))
         painter.setPen(pen)
 
-        painter.translate(30, 30)
+        painter.translate(40, 40)
         painter.rotate(self.rotation_angle)
 
-        for i in range(8):
-            painter.rotate(45)
-            painter.drawLine(0, -20, 0, -15)
+        # Draw three arcs for spinner effect
+        for i in range(3):
+            painter.rotate(120)
+            painter.drawArc(-30, -30, 60, 60, 0, 120 * 16)
 
         painter.end()
         self.spinner_label.setPixmap(pixmap)
@@ -521,17 +550,17 @@ class LoadingOverlay(QWidget):
         """Centers overlay and starts animation."""
         if self.parent():
             self.setGeometry(self.parent().rect())
-        self.timer.start(50)
+        self.timer.start(30)  # 30ms refresh rate for smooth animation
         self.update_spinner()
         super().showEvent(event)
 
     def hideEvent(self, event):
-        """Stops animation."""
+        """Stops animation when hidden."""
         self.timer.stop()
         super().hideEvent(event)
 
     def set_message(self, message):
-        """Updates loading message."""
+        """Updates the loading message."""
         self.message_label.setText(message)
 
 
@@ -671,6 +700,7 @@ class DownloadWorker(QThread):
                 downloaded = 0
                 image_data = b""
 
+                # Download with progress
                 chunk_size = 8192
                 while True:
                     chunk = response.read(chunk_size)
@@ -720,7 +750,7 @@ class DownloadWorker(QThread):
                 "merge_output_format": "mp4",
             }
 
-            # Add trimming via external args if needed
+            # Add trimming via external args if needed (FIXED METHOD)
             external_args = []
             if self.start_time:
                 external_args.extend(["-ss", self.start_time])
@@ -791,7 +821,7 @@ class ClipShrApp(QMainWindow):
         self.setWindowTitle("ClipShr - Professional Media Downloader")
         self.setMinimumSize(1200, 800)
 
-        # Progress bar
+        # Progress bar (will be used in downloader tab)
         self.progress_bar = QProgressBar()
 
         # Setup UI
@@ -840,17 +870,17 @@ class ClipShrApp(QMainWindow):
 
         # Create Tabs
         self.downloader_tab = self.create_downloader_tab()
-        self.tab_widget.addTab(self.downloader_tab, "Downloader")
+        self.tab_widget.addTab(self.downloader_tab, "📥 Downloader")
 
         self.history_tab = self.create_history_tab()
-        self.tab_widget.addTab(self.history_tab, "History")
+        self.tab_widget.addTab(self.history_tab, "📜 History")
 
         self.settings_tab = self.create_settings_tab()
-        self.tab_widget.addTab(self.settings_tab, "Settings")
+        self.tab_widget.addTab(self.settings_tab, "⚙️ Settings")
 
         main_layout.addWidget(self.tab_widget)
 
-        # Loading Overlay
+        # Loading Overlay (on top of everything)
         self.loading_overlay = LoadingOverlay(self)
         self.loading_overlay.hide()
 
@@ -863,42 +893,49 @@ class ClipShrApp(QMainWindow):
     # ===== DOWNLOADER TAB =====
 
     def create_downloader_tab(self):
-        """Creates the main downloader interface (Clean UI like reference)."""
+        """Creates the main downloader interface."""
         downloader_widget = QWidget()
         main_vbox = QVBoxLayout(downloader_widget)
-        main_vbox.setSpacing(15)
-        main_vbox.setContentsMargins(20, 20, 20, 20)
+        main_vbox.setSpacing(20)
+        main_vbox.setContentsMargins(25, 25, 25, 25)
 
-        # ===== URL INPUT SECTION =====
-        url_hbox = QHBoxLayout()
-        url_hbox.setSpacing(10)
+        # ===== A. URL INPUT SECTION =====
+        url_group = QGroupBox("🔗 Enter Media Link")
+        url_layout = QHBoxLayout(url_group)
+        url_layout.setSpacing(15)
 
         self.url_input = QLineEdit()
-        self.url_input.setPlaceholderText("Paste YouTube, Vimeo, or media URL here...")
+        self.url_input.setPlaceholderText(
+            "Paste YouTube, Vimeo, or direct media/image URL here..."
+        )
         self.url_input.returnPressed.connect(self.determine_fetch_type)
         self.url_input.textChanged.connect(self.clear_ui_on_text_change)
 
-        self.fetch_button = QPushButton("Fetch Details")
-        self.fetch_button.setMinimumWidth(140)
+        self.fetch_button = QPushButton("🔍 Fetch Details")
+        self.fetch_button.setMinimumWidth(150)
         self.fetch_button.clicked.connect(self.determine_fetch_type)
 
-        url_hbox.addWidget(self.url_input, 5)
-        url_hbox.addWidget(self.fetch_button, 1)
-        main_vbox.addLayout(url_hbox)
+        url_layout.addWidget(self.url_input, 4)
+        url_layout.addWidget(self.fetch_button, 1)
+        main_vbox.addWidget(url_group)
 
-        # ===== CONTENT AREA (PREVIEW + FORMATS) =====
-        content_hbox = QHBoxLayout()
-        content_hbox.setSpacing(20)
+        # ===== B. CONTENT AREA (PREVIEW + FORMATS) =====
+        content_splitter = QSplitter(Qt.Horizontal)
+        content_splitter.setChildrenCollapsible(False)
 
-        # LEFT: Preview & Metadata Panel
+        # B1. PREVIEW & METADATA PANEL (LEFT)
         preview_container = self.create_preview_panel()
-        content_hbox.addWidget(preview_container, 35)
+        content_splitter.addWidget(preview_container)
 
-        # RIGHT: Formats & Actions Panel
+        # B2. FORMATS & ACTIONS PANEL (RIGHT)
         formats_container = self.create_formats_panel()
-        content_hbox.addWidget(formats_container, 65)
+        content_splitter.addWidget(formats_container)
 
-        main_vbox.addLayout(content_hbox, 1)
+        # Set initial sizes (40% preview, 60% formats)
+        content_splitter.setStretchFactor(0, 40)
+        content_splitter.setStretchFactor(1, 60)
+
+        main_vbox.addWidget(content_splitter, 1)
 
         return downloader_widget
 
@@ -907,13 +944,16 @@ class ClipShrApp(QMainWindow):
         container = QWidget()
         vbox = QVBoxLayout(container)
         vbox.setSpacing(15)
-        vbox.setContentsMargins(0, 0, 0, 0)
+        vbox.setContentsMargins(0, 0, 10, 0)
 
         # === THUMBNAIL PREVIEW ===
+        preview_group = QGroupBox("🖼️ Preview")
+        preview_layout = QVBoxLayout(preview_group)
+
         self.thumbnail_label = QLabel()
         self.thumbnail_label.setAlignment(Qt.AlignCenter)
-        self.thumbnail_label.setMinimumSize(320, 180)
-        self.thumbnail_label.setMaximumHeight(280)
+        self.thumbnail_label.setMinimumSize(400, 225)
+        self.thumbnail_label.setMaximumHeight(300)
         self.thumbnail_label.setScaledContents(False)
         self.thumbnail_label.setStyleSheet(
             """
@@ -922,19 +962,22 @@ class ClipShrApp(QMainWindow):
                 border-radius: 8px;
                 padding: 20px;
                 color: #999999;
-                font-size: 10pt;
-                background-color: #FAFAFA;
+                font-size: 11pt;
             }
         """
         )
-        self.thumbnail_label.setText("Paste a link and click 'Fetch Details'")
+        self.thumbnail_label.setText(
+            "📋 Paste a link above and click 'Fetch Details' to preview"
+        )
         self.thumbnail_label.setWordWrap(True)
-        vbox.addWidget(self.thumbnail_label)
+
+        preview_layout.addWidget(self.thumbnail_label)
+        vbox.addWidget(preview_group)
 
         # === METADATA DETAILS ===
-        self.metadata_group = QGroupBox("Media Details")
+        self.metadata_group = QGroupBox("ℹ️ Media Information")
         meta_grid = QGridLayout(self.metadata_group)
-        meta_grid.setSpacing(10)
+        meta_grid.setSpacing(12)
         meta_grid.setColumnStretch(1, 1)
 
         # Create metadata labels
@@ -951,7 +994,7 @@ class ClipShrApp(QMainWindow):
             value = QLabel("N/A")
             value.setWordWrap(True)
             value.setTextInteractionFlags(Qt.TextSelectableByMouse)
-            value.setStyleSheet("font-weight: 500; color: #333333;")
+            value.setStyleSheet("font-weight: 500;")
             meta_grid.addWidget(value, i, 1)
 
             self.meta_labels[key] = value
@@ -959,12 +1002,12 @@ class ClipShrApp(QMainWindow):
         vbox.addWidget(self.metadata_group)
 
         # === TRIMMING SECTION ===
-        self.trim_group = QGroupBox("Media Clipping (Optional)")
+        self.trim_group = QGroupBox("✂️ Trim Media (Optional)")
         trim_vbox = QVBoxLayout(self.trim_group)
         trim_vbox.setSpacing(10)
 
         # Manual time input
-        manual_group = QGroupBox("1. Manual Time Input")
+        manual_group = QGroupBox("Manual Time Input")
         manual_grid = QGridLayout(manual_group)
         manual_grid.setSpacing(10)
 
@@ -980,57 +1023,43 @@ class ClipShrApp(QMainWindow):
 
         trim_vbox.addWidget(manual_group)
 
-        # Timeline placeholder
-        timeline_group = QGroupBox("2. Interactive Timeline (Future Feature)")
-        timeline_vbox = QVBoxLayout(timeline_group)
-        timeline_label = QLabel(
-            "Interactive drag-and-drop timeline selection is not yet implemented in this version."
+        # Info note
+        note_label = QLabel(
+            "💡 Note: Trimming requires FFmpeg to be installed on your system."
         )
-        timeline_label.setWordWrap(True)
-        timeline_label.setStyleSheet("color: #888888; font-style: italic;")
-        timeline_vbox.addWidget(timeline_label)
-
-        timeline_placeholder = QLabel("[ Visual Timeline / Waveform Placeholder ]")
-        timeline_placeholder.setAlignment(Qt.AlignCenter)
-        timeline_placeholder.setStyleSheet(
-            """
-            background-color: #F5F5F5;
-            border: 1px dashed #CCCCCC;
-            padding: 20px;
-            border-radius: 6px;
-            color: #999999;
-        """
-        )
-        timeline_vbox.addWidget(timeline_placeholder)
-        trim_vbox.addWidget(timeline_group)
+        note_label.setStyleSheet("color: #888888; font-size: 9pt; font-style: italic;")
+        note_label.setWordWrap(True)
+        trim_vbox.addWidget(note_label)
 
         vbox.addWidget(self.trim_group)
-        self.trim_group.hide()
+        self.trim_group.hide()  # Hidden by default
 
         vbox.addStretch(1)
         return container
 
     def create_formats_panel(self):
-        """Creates the formats selection and download panel (Clean like reference)."""
+        """Creates the formats selection and download panel."""
         container = QWidget()
         vbox = QVBoxLayout(container)
         vbox.setSpacing(15)
-        vbox.setContentsMargins(0, 0, 0, 0)
+        vbox.setContentsMargins(10, 0, 0, 0)
 
-        formats_group = QGroupBox("Available Formats _Download Options")
+        formats_group = QGroupBox("📦 Available Formats & Download")
         formats_layout = QVBoxLayout(formats_group)
-        formats_layout.setSpacing(12)
+        formats_layout.setSpacing(15)
+
+        # Format Lists Splitter
+        format_splitter = QSplitter(Qt.Vertical)
+        format_splitter.setChildrenCollapsible(False)
 
         # VIDEO FORMATS
-        self.video_format_group = QGroupBox("Video Formats")
+        self.video_format_group = QGroupBox("🎬 Video Formats (with Audio)")
         video_vbox = QVBoxLayout(self.video_format_group)
-        video_vbox.setSpacing(5)
+        video_vbox.setSpacing(8)
 
-        video_header = QLabel("Quality | Format | Size")
-        video_header.setStyleSheet(
-            "font-weight: 600; color: #888888; font-size: 9pt; padding: 5px;"
-        )
-        video_vbox.addWidget(video_header)
+        video_info = QLabel("Quality | Format | Size")
+        video_info.setStyleSheet("font-weight: 600; color: #888888; font-size: 9pt;")
+        video_vbox.addWidget(video_info)
 
         self.video_list_widget = QListWidget()
         self.video_list_widget.setSelectionMode(QListWidget.SingleSelection)
@@ -1039,18 +1068,16 @@ class ClipShrApp(QMainWindow):
         )
         video_vbox.addWidget(self.video_list_widget)
 
-        formats_layout.addWidget(self.video_format_group, 3)
+        format_splitter.addWidget(self.video_format_group)
 
         # AUDIO FORMATS
-        self.audio_format_group = QGroupBox("Audio Formats")
+        self.audio_format_group = QGroupBox("🎵 Audio Only Formats")
         audio_vbox = QVBoxLayout(self.audio_format_group)
-        audio_vbox.setSpacing(5)
+        audio_vbox.setSpacing(8)
 
-        audio_header = QLabel("Quality | Format | Size")
-        audio_header.setStyleSheet(
-            "font-weight: 600; color: #888888; font-size: 9pt; padding: 5px;"
-        )
-        audio_vbox.addWidget(audio_header)
+        audio_info = QLabel("Quality | Format | Size")
+        audio_info.setStyleSheet("font-weight: 600; color: #888888; font-size: 9pt;")
+        audio_vbox.addWidget(audio_info)
 
         self.audio_list_widget = QListWidget()
         self.audio_list_widget.setSelectionMode(QListWidget.SingleSelection)
@@ -1059,35 +1086,37 @@ class ClipShrApp(QMainWindow):
         )
         audio_vbox.addWidget(self.audio_list_widget)
 
-        formats_layout.addWidget(self.audio_format_group, 2)
+        format_splitter.addWidget(self.audio_format_group)
+
+        # Set stretch factors
+        format_splitter.setStretchFactor(0, 60)
+        format_splitter.setStretchFactor(1, 40)
+
+        formats_layout.addWidget(format_splitter)
 
         # === PROGRESS BAR ===
         self.progress_bar.setAlignment(Qt.AlignCenter)
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
         self.progress_bar.setTextVisible(True)
-        self.progress_bar.setFormat("%p%")
         formats_layout.addWidget(self.progress_bar)
 
         # === STATUS LABEL ===
-        self.status_label = QLabel("Status: Ready to fetch link.")
+        self.status_label = QLabel("✅ Ready to fetch a link")
         self.status_label.setAlignment(Qt.AlignCenter)
         self.status_label.setStyleSheet(
             """
             padding: 10px;
-            font-weight: 500;
+            font-weight: 600;
             font-size: 10pt;
-            color: #666666;
-            background-color: #F8F9FA;
             border-radius: 6px;
-            border: 1px solid #DEE2E6;
         """
         )
         formats_layout.addWidget(self.status_label)
 
         # === DOWNLOAD BUTTON ===
-        self.download_button = QPushButton("Download Selected Format")
-        self.download_button.setMinimumHeight(45)
+        self.download_button = QPushButton("⬇️ Download Selected Format")
+        self.download_button.setMinimumHeight(50)
         self.download_button.clicked.connect(self.start_download)
         self.download_button.setEnabled(False)
         formats_layout.addWidget(self.download_button)
@@ -1102,7 +1131,7 @@ class ClipShrApp(QMainWindow):
         url = self.url_input.text().strip()
 
         if not url:
-            self.update_status("Please enter a URL", error=True)
+            self.update_status("❌ Please enter a URL", error=True)
             return
 
         # Check if it's a direct image URL
@@ -1115,11 +1144,11 @@ class ClipShrApp(QMainWindow):
 
     def fetch_image_details(self, url):
         """Fetches and processes direct image URLs."""
-        self.update_status("Fetching image details...")
+        self.update_status("🔄 Fetching image details...")
         self.fetch_button.setEnabled(False)
         self.download_button.setEnabled(False)
 
-        self.loading_overlay.set_message("Downloading image preview...")
+        self.loading_overlay.set_message("🖼️ Downloading image preview...")
         self.loading_overlay.show()
 
         self.image_fetch_thread = ImageDownloadWorker(url)
@@ -1141,7 +1170,7 @@ class ClipShrApp(QMainWindow):
             "filesize": len(image_data),
         }
 
-        self.update_status("Image ready! Select format to download.")
+        self.update_status("✅ Image ready! Select format to download.")
 
         # Display thumbnail
         pixmap = QPixmap()
@@ -1157,7 +1186,7 @@ class ClipShrApp(QMainWindow):
             self.thumbnail_label.setPixmap(scaled_pixmap)
             self.thumbnail_label.setText("")
         else:
-            self.thumbnail_label.setText("Could not load image preview")
+            self.thumbnail_label.setText("⚠️ Could not load image preview")
 
         # Update metadata display
         self.meta_labels["Title"].setText(filename)
@@ -1171,8 +1200,8 @@ class ClipShrApp(QMainWindow):
         # Update format lists for image
         self.video_list_widget.clear()
         self.audio_list_widget.clear()
-        self.video_format_group.setTitle("Image Format")
-        self.audio_format_group.setTitle("Download Info")
+        self.video_format_group.setTitle("🖼️ Image Format")
+        self.audio_format_group.setTitle("ℹ️ Info")
 
         # Create image format entry
         image_format = {
@@ -1189,8 +1218,8 @@ class ClipShrApp(QMainWindow):
         self._populate_format_list(self.video_list_widget, [image_format])
 
         # Info in audio section
-        info_item = QListWidgetItem("Direct image download - no conversion needed")
-        info_item.setFlags(Qt.NoItemFlags)
+        info_item = QListWidgetItem("💡 Direct image download - no conversion needed")
+        info_item.setFlags(Qt.NoItemFlags)  # Make it non-selectable
         self.audio_list_widget.addItem(info_item)
 
         self.trim_group.hide()
@@ -1198,11 +1227,11 @@ class ClipShrApp(QMainWindow):
 
     def fetch_metadata(self, url):
         """Fetches video/audio metadata using yt-dlp."""
-        self.update_status("Fetching media details...")
+        self.update_status("🔄 Fetching media details...")
         self.fetch_button.setEnabled(False)
         self.download_button.setEnabled(False)
 
-        self.loading_overlay.set_message("Extracting media information...")
+        self.loading_overlay.set_message("🎬 Extracting media information...")
         self.loading_overlay.show()
 
         self.ytdlp_thread = YtdlpWorker(url)
@@ -1213,7 +1242,7 @@ class ClipShrApp(QMainWindow):
     def handle_fetch_error(self, error_message):
         """Handles errors during metadata fetching."""
         self.loading_overlay.hide()
-        self.update_status(f"Error: {error_message}", error=True)
+        self.update_status(f"❌ {error_message}", error=True)
         self.fetch_button.setEnabled(True)
         self.download_button.setEnabled(False)
 
@@ -1225,7 +1254,7 @@ class ClipShrApp(QMainWindow):
         self.metadata = info
         self.fetch_button.setEnabled(True)
 
-        self.update_status("Details fetched successfully. Select a format.")
+        self.update_status("✅ Media details loaded! Select a format to download.")
 
         # Display preview and formats
         self.display_preview(info)
@@ -1293,21 +1322,23 @@ class ClipShrApp(QMainWindow):
                     self.thumbnail_label.setPixmap(scaled_pixmap)
                     self.thumbnail_label.setText("")
                 else:
-                    self.thumbnail_label.setText("Thumbnail not available")
+                    self.thumbnail_label.setText("🖼️ Thumbnail not available")
             except Exception as e:
-                self.thumbnail_label.setText(f"Could not load thumbnail")
+                self.thumbnail_label.setText(
+                    f"⚠️ Could not load thumbnail\n({str(e)[:50]})"
+                )
         else:
-            self.thumbnail_label.setText("No thumbnail available")
+            self.thumbnail_label.setText("🖼️ No thumbnail available")
 
     def display_formats(self, formats):
-        """Displays available formats grouped by video and audio (CLEAN VERSION)."""
+        """Displays available formats grouped by video and audio."""
         self.video_list_widget.clear()
         self.audio_list_widget.clear()
 
         video_formats = []
         audio_formats = []
 
-        # Find best video and audio sizes for BEST QUALITY estimate
+        # Add BEST QUALITY option (auto-merged video+audio)
         best_video_size = 0
         best_audio_size = 0
 
@@ -1324,32 +1355,33 @@ class ClipShrApp(QMainWindow):
             ):
                 best_audio_size = size
 
-        # Create BEST QUALITY format entry (auto-merged video+audio)
+        # Create BEST QUALITY format entry
         if best_video_size > 0:
             estimated_size = best_video_size + best_audio_size
             video_formats.append(
                 {
                     "format_id": "bestvideo+bestaudio/best",
-                    "display_quality": "BEST QUALITY (Full Video + Audio)",
-                    "ext": "MP4 (MERGED)",
+                    "display_quality": "🏆 BEST QUALITY (Full Video + Audio)",
+                    "ext": "MP4 (Merged)",
                     "size": (
                         format_bytes(estimated_size)
                         if estimated_size > 0
-                        else "Size Unknown"
+                        else "~Size Unknown"
                     ),
                     "raw_format": {
                         "vcodec": "best",
                         "acodec": "best",
-                        "height": 999999,
+                        "height": 999999,  # For sorting priority
                     },
                     "is_best": True,
                 }
             )
 
-        # Process all other formats
+        # Process all formats
         for f in formats:
             filesize = f.get("filesize") or f.get("filesize_approx")
 
+            # Skip formats without size info
             if not filesize:
                 continue
 
@@ -1367,28 +1399,24 @@ class ClipShrApp(QMainWindow):
 
             # VIDEO + AUDIO (Combined)
             if vcodec != "none" and acodec != "none":
-                quality_text = (
-                    f"Video Only (Muted) - {height}p"
-                    if height
-                    else "Video Only (Muted)"
-                )
+                quality_text = f"{height}p" if height else "Unknown"
                 if fps and fps > 30:
                     quality_text += f" {fps}fps"
 
-                format_data["display_quality"] = quality_text
-                # Don't add these - they're confusing for users
-                # video_formats.append(format_data)
+                format_data["display_quality"] = f"📹 {quality_text} (Video + Audio)"
+                video_formats.append(format_data)
 
-            # VIDEO ONLY - Skip these to avoid confusion
+            # VIDEO ONLY (No audio - usually not needed since we have BEST)
             elif vcodec != "none" and acodec == "none":
+                # Skip video-only formats to avoid confusion, since BEST handles merging
                 continue
 
             # AUDIO ONLY
             elif vcodec == "none" and acodec != "none":
                 abr = f.get("abr", 0)
-                quality_text = f"Audio Only - {int(abr)}kbps" if abr else "Audio Only"
+                quality_text = f"{int(abr)}kbps" if abr else "Unknown Quality"
 
-                format_data["display_quality"] = quality_text
+                format_data["display_quality"] = f"🎵 Audio Only - {quality_text}"
                 audio_formats.append(format_data)
 
         # Sort formats
@@ -1400,19 +1428,19 @@ class ClipShrApp(QMainWindow):
         self._populate_format_list(self.video_list_widget, video_formats)
         self._populate_format_list(self.audio_list_widget, audio_formats)
 
-        # Show message if no formats
+        # Show message if no formats found
         if not video_formats:
-            item = QListWidgetItem("No video formats available")
+            item = QListWidgetItem("⚠️ No video formats available")
             item.setFlags(Qt.NoItemFlags)
             self.video_list_widget.addItem(item)
 
         if not audio_formats:
-            item = QListWidgetItem("No audio formats available")
+            item = QListWidgetItem("⚠️ No audio formats available")
             item.setFlags(Qt.NoItemFlags)
             self.audio_list_widget.addItem(item)
 
     def _populate_format_list(self, list_widget, formats):
-        """Populates format lists with clean text items (EXACTLY like your reference UI)."""
+        """Helper to populate format lists with styled items."""
         list_widget.clear()
 
         if not formats:
@@ -1421,36 +1449,69 @@ class ClipShrApp(QMainWindow):
         palette = PALETTES[self.config["theme"]]
 
         for f in formats:
-            # Create clean text format (like reference UI)
-            display_text = f["display_quality"]
-            format_text = f"| {f['ext']}"
-            size_text = f["size"]
+            # Create custom widget for list item
+            item_widget = QWidget()
+            item_layout = QGridLayout(item_widget)
+            item_layout.setContentsMargins(10, 5, 10, 5)
+            item_layout.setHorizontalSpacing(15)
 
-            # Build formatted string with proper spacing
-            full_text = f"{display_text:<60} {format_text:<15} {size_text:>12}"
+            # Determine color based on format type
+            if f.get("is_best"):
+                color = palette["ACCENT_RED"]
+                weight = "bold"
+            elif "Video + Audio" in f["display_quality"]:
+                color = palette["ACCENT_BLUE"]
+                weight = "600"
+            else:
+                color = palette["TEXT_PRIMARY"]
+                weight = "500"
+
+            # Quality label
+            quality_label = QLabel(f["display_quality"])
+            quality_label.setStyleSheet(
+                f"""
+                font-weight: {weight};
+                font-size: 10pt;
+                color: {color};
+                background: transparent;
+            """
+            )
+            item_layout.addWidget(quality_label, 0, 0, Qt.AlignLeft)
+
+            # Format label
+            format_label = QLabel(f"| {f['ext']}")
+            format_label.setStyleSheet(
+                """
+                font-size: 9pt;
+                color: #888888;
+                background: transparent;
+            """
+            )
+            item_layout.addWidget(format_label, 0, 1, Qt.AlignRight)
+
+            # Size label
+            size_label = QLabel(f["size"])
+            size_label.setStyleSheet(
+                f"""
+                font-weight: bold;
+                font-size: 10pt;
+                color: {palette['ACCENT_GREEN']};
+                background: transparent;
+            """
+            )
+            item_layout.addWidget(size_label, 0, 2, Qt.AlignRight)
+
+            # Set column stretches
+            item_layout.setColumnStretch(0, 5)
+            item_layout.setColumnStretch(1, 1)
+            item_layout.setColumnStretch(2, 2)
 
             # Create list item
-            list_item = QListWidgetItem(full_text)
+            list_item = QListWidgetItem(list_widget)
+            list_item.setSizeHint(QSize(list_widget.width() - 20, 50))
             list_item.setData(Qt.UserRole, f)
 
-            # Color coding based on type
-            if f.get("is_best"):
-                # BEST QUALITY in red
-                list_item.setForeground(QColor(palette["ACCENT_RED"]))
-                font = list_item.font()
-                font.setBold(True)
-                list_item.setFont(font)
-            elif "Video + Audio" in display_text or "Video Only" in display_text:
-                # Video in blue
-                list_item.setForeground(QColor(palette["ACCENT_BLUE"]))
-            elif "Audio Only" in display_text:
-                # Audio in green
-                list_item.setForeground(QColor(palette["ACCENT_GREEN"]))
-            else:
-                # Default
-                list_item.setForeground(QColor(palette["TEXT_PRIMARY"]))
-
-            list_widget.addItem(list_item)
+            list_widget.setItemWidget(list_item, item_widget)
 
     def on_video_format_selected(self):
         """Handles video format selection."""
@@ -1472,11 +1533,11 @@ class ClipShrApp(QMainWindow):
             if self.selected_format:
                 self.download_button.setEnabled(True)
                 quality = self.selected_format.get("display_quality", "N/A")
-                self.update_status(f"Selected: {quality} - Ready to download!")
+                self.update_status(f"✅ Selected: {quality} - Ready to download!")
         else:
             self.selected_format = None
             self.download_button.setEnabled(False)
-            self.update_status("Select a format to continue")
+            self.update_status("ℹ️ Select a format to continue")
 
     def clear_ui_on_text_change(self, text):
         """Resets UI when URL input changes."""
@@ -1486,11 +1547,13 @@ class ClipShrApp(QMainWindow):
         self.download_button.setEnabled(False)
         self.progress_bar.setValue(0)
 
-        self.update_status("Ready to fetch link.")
+        self.update_status("✅ Ready to fetch a link")
 
         # Clear preview
         self.thumbnail_label.setPixmap(QPixmap())
-        self.thumbnail_label.setText("Paste a link and click 'Fetch Details'")
+        self.thumbnail_label.setText(
+            "📋 Paste a link above and click 'Fetch Details' to preview"
+        )
 
         # Clear metadata
         for label in self.meta_labels.values():
@@ -1499,8 +1562,8 @@ class ClipShrApp(QMainWindow):
         # Clear format lists
         self.video_list_widget.clear()
         self.audio_list_widget.clear()
-        self.video_format_group.setTitle("Video Formats")
-        self.audio_format_group.setTitle("Audio Formats")
+        self.video_format_group.setTitle("🎬 Video Formats (with Audio)")
+        self.audio_format_group.setTitle("🎵 Audio Only Formats")
 
         # Reset time inputs
         self.start_time_input.setText("00:00:00")
@@ -1509,32 +1572,29 @@ class ClipShrApp(QMainWindow):
 
     def update_status(self, message, error=False):
         """Updates the status label with appropriate styling."""
-        self.status_label.setText(f"Status: {message}")
+        self.status_label.setText(message)
 
         palette = PALETTES[self.config["theme"]]
 
         if error:
-            bg_color = "#FFF3CD"
-            text_color = "#856404"
-            border_color = "#FFC107"
-        elif "Ready" in message or "successfully" in message or "Selected" in message:
-            bg_color = "#D4EDDA"
-            text_color = "#155724"
-            border_color = "#28A745"
+            bg_color = palette["ACCENT_RED"]
+            text_color = "white"
+        elif "✅" in message or "Ready" in message:
+            bg_color = palette["BG_CARD"]
+            text_color = palette["ACCENT_GREEN"]
         else:
             bg_color = palette["BG_CARD"]
             text_color = palette["TEXT_PRIMARY"]
-            border_color = palette["BORDER"]
 
         self.status_label.setStyleSheet(
             f"""
             background-color: {bg_color};
             color: {text_color};
-            padding: 10px;
-            font-weight: 500;
+            padding: 12px;
+            font-weight: 600;
             font-size: 10pt;
             border-radius: 6px;
-            border: 1px solid {border_color};
+            border: 1px solid {palette['BORDER']};
         """
         )
 
@@ -1544,7 +1604,7 @@ class ClipShrApp(QMainWindow):
         """Initiates the download process."""
         if not self.metadata or not self.selected_format:
             self.update_status(
-                "Please fetch media and select a format first", error=True
+                "❌ Please fetch media and select a format first", error=True
             )
             return
 
@@ -1576,7 +1636,7 @@ class ClipShrApp(QMainWindow):
                 )
                 return
 
-        self.update_status("Starting download...")
+        self.update_status("⬇️ Starting download...")
         self.download_button.setEnabled(False)
         self.fetch_button.setEnabled(False)
         self.progress_bar.setValue(0)
@@ -1609,12 +1669,12 @@ class ClipShrApp(QMainWindow):
     def update_download_progress(self, percent, status_text):
         """Updates progress bar during download."""
         self.progress_bar.setValue(int(percent))
-        self.update_status(f"Downloading... {int(percent)}% | {status_text}")
+        self.update_status(f"⬇️ Downloading... {int(percent)}% | {status_text}")
 
     def download_finished(self, filepath, filename, size_str, format_id):
         """Handles successful download completion."""
         self.progress_bar.setValue(100)
-        self.update_status(f"Download Complete! Size: {size_str}")
+        self.update_status(f"✅ Download Complete! Size: {size_str}")
 
         # Save to history
         db = load_db()
@@ -1634,17 +1694,17 @@ class ClipShrApp(QMainWindow):
         self.download_button.setEnabled(True)
         self.fetch_button.setEnabled(True)
 
-        # Show success message
+        # Show success message with options
         msg = QMessageBox(self)
         msg.setWindowTitle("Download Complete")
-        msg.setText("Download completed successfully!")
+        msg.setText(f"✅ Successfully downloaded!")
         msg.setInformativeText(
             f"File: {filename}\n" f"Size: {size_str}\n" f"Location: {self.media_folder}"
         )
         msg.setIcon(QMessageBox.Information)
 
-        open_btn = msg.addButton("Open File", QMessageBox.ActionRole)
-        folder_btn = msg.addButton("Open Folder", QMessageBox.ActionRole)
+        open_btn = msg.addButton("📂 Open File", QMessageBox.ActionRole)
+        folder_btn = msg.addButton("📁 Open Folder", QMessageBox.ActionRole)
         msg.addButton("OK", QMessageBox.AcceptRole)
 
         msg.exec_()
@@ -1658,7 +1718,7 @@ class ClipShrApp(QMainWindow):
     def handle_download_error(self, error_message):
         """Handles download errors."""
         self.progress_bar.setValue(0)
-        self.update_status(f"Download Failed: {error_message}", error=True)
+        self.update_status(f"❌ Download Failed: {error_message}", error=True)
 
         self.download_button.setEnabled(True)
         self.fetch_button.setEnabled(True)
@@ -1679,23 +1739,27 @@ class ClipShrApp(QMainWindow):
         """Creates the download history tab."""
         history_widget = QWidget()
         vbox = QVBoxLayout(history_widget)
-        vbox.setContentsMargins(20, 20, 20, 20)
-        vbox.setSpacing(15)
+        vbox.setContentsMargins(25, 25, 25, 25)
+        vbox.setSpacing(20)
 
-        # Header with buttons
+        # Header
         header_layout = QHBoxLayout()
 
-        # Refresh button
-        self.refresh_history_btn = QPushButton("Refresh")
-        self.refresh_history_btn.setObjectName("SecondaryButton")
-        self.refresh_history_btn.setMinimumWidth(100)
-        self.refresh_history_btn.clicked.connect(self.load_history)
-        header_layout.addWidget(self.refresh_history_btn)
+        title_label = QLabel("📜 Download History")
+        title_label.setStyleSheet("font-size: 18pt; font-weight: bold;")
+        header_layout.addWidget(title_label)
 
         header_layout.addStretch(1)
 
+        # Refresh button
+        self.refresh_history_btn = QPushButton("🔄 Refresh")
+        self.refresh_history_btn.setObjectName("SecondaryButton")
+        self.refresh_history_btn.setMinimumWidth(120)
+        self.refresh_history_btn.clicked.connect(self.load_history)
+        header_layout.addWidget(self.refresh_history_btn)
+
         # Clear history button
-        self.clear_history_button = QPushButton("Clear All History")
+        self.clear_history_button = QPushButton("🗑️ Clear All History")
         self.clear_history_button.setObjectName("DangerButton")
         self.clear_history_button.setMinimumWidth(150)
         self.clear_history_button.clicked.connect(self.clear_history_prompt)
@@ -1707,12 +1771,20 @@ class ClipShrApp(QMainWindow):
         self.history_table = QTableWidget()
         self.history_table.setColumnCount(7)
         self.history_table.setHorizontalHeaderLabels(
-            ["Date", "Title", "Type", "Format", "Size", "Status", "Actions"]
+            [
+                "📅 Date",
+                "📝 Title",
+                "🎬 Type",
+                "📦 Format",
+                "💾 Size",
+                "✅ Status",
+                "⚙️ Actions",
+            ]
         )
 
         # Configure table
         header = self.history_table.horizontalHeader()
-        header.setSectionResizeMode(1, QHeaderView.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.Stretch)  # Title stretches
         header.setSectionResizeMode(QHeaderView.ResizeToContents)
 
         self.history_table.verticalHeader().setVisible(False)
@@ -1727,7 +1799,7 @@ class ClipShrApp(QMainWindow):
         self.history_stats_label = QLabel()
         self.history_stats_label.setStyleSheet(
             """
-            padding: 8px;
+            padding: 10px;
             font-size: 10pt;
             color: #666666;
         """
@@ -1742,9 +1814,8 @@ class ClipShrApp(QMainWindow):
         self.history_table.setRowCount(len(db))
 
         total_size = 0
-        palette = PALETTES[self.config["theme"]]
 
-        for row, item in enumerate(reversed(db)):
+        for row, item in enumerate(reversed(db)):  # Newest first
             # Date
             date_text = item.get("timestamp", "N/A").split(" ")[0]
             date_item = QTableWidgetItem(date_text)
@@ -1759,7 +1830,7 @@ class ClipShrApp(QMainWindow):
             self.history_table.setItem(row, 1, title_item)
 
             # Type
-            type_text = "Image" if item.get("is_image") else "Media"
+            type_text = "🖼️ Image" if item.get("is_image") else "🎬 Media"
             type_item = QTableWidgetItem(type_text)
             self.history_table.setItem(row, 2, type_item)
 
@@ -1775,9 +1846,10 @@ class ClipShrApp(QMainWindow):
             size_item = QTableWidgetItem(item.get("size", "N/A"))
             self.history_table.setItem(row, 4, size_item)
 
-            # Calculate total size
+            # Calculate total size for stats
             size_str = item.get("size", "0 B")
             try:
+                # Parse size string like "43.69 MB"
                 parts = size_str.split()
                 if len(parts) == 2:
                     value = float(parts[0])
@@ -1788,39 +1860,43 @@ class ClipShrApp(QMainWindow):
                 pass
 
             # Status
-            status_item = QTableWidgetItem("Completed")
+            status_item = QTableWidgetItem("✅ Completed")
+            palette = PALETTES[self.config["theme"]]
             status_item.setForeground(QColor(palette["ACCENT_GREEN"]))
             self.history_table.setItem(row, 5, status_item)
 
             # Action buttons
             action_widget = QWidget()
             action_layout = QHBoxLayout(action_widget)
-            action_layout.setContentsMargins(4, 4, 4, 4)
-            action_layout.setSpacing(4)
+            action_layout.setContentsMargins(5, 5, 5, 5)
+            action_layout.setSpacing(5)
 
-            open_btn = QPushButton("Open")
-            open_btn.setMinimumWidth(60)
+            # Open file button
+            open_btn = QPushButton("📂 Open")
+            open_btn.setMinimumWidth(70)
             open_btn.clicked.connect(
                 lambda checked, r=row: self.open_downloaded_file(r)
             )
             action_layout.addWidget(open_btn)
 
-            delete_btn = QPushButton("Delete")
+            # Delete record button
+            delete_btn = QPushButton("🗑️")
             delete_btn.setObjectName("DangerButton")
-            delete_btn.setMinimumWidth(60)
+            delete_btn.setMaximumWidth(40)
+            delete_btn.setToolTip("Delete this record")
             delete_btn.clicked.connect(
                 lambda checked, r=row: self.delete_history_item(r)
             )
             action_layout.addWidget(delete_btn)
 
             self.history_table.setCellWidget(row, 6, action_widget)
-            self.history_table.setRowHeight(row, 45)
+            self.history_table.setRowHeight(row, 50)
 
         # Update stats
         total_downloads = len(db)
         total_size_str = format_bytes(total_size)
         self.history_stats_label.setText(
-            f"Total Downloads: {total_downloads} | Total Size: {total_size_str}"
+            f"📊 Total Downloads: {total_downloads} | 💾 Total Size: {total_size_str}"
         )
 
     def open_downloaded_file(self, row_index):
@@ -1841,13 +1917,18 @@ class ClipShrApp(QMainWindow):
         filepath = os.path.join(self.media_folder, filename)
 
         if not os.path.exists(filepath):
-            QMessageBox.warning(
-                self,
-                "File Not Found",
-                f"The file no longer exists:\n\n{filepath}\n\nIt may have been moved or deleted.",
+            msg = QMessageBox(self)
+            msg.setIcon(QMessageBox.Warning)
+            msg.setWindowTitle("File Not Found")
+            msg.setText("The file no longer exists at the expected location.")
+            msg.setInformativeText(
+                f"Expected: {filepath}\n\nIt may have been moved or deleted."
             )
+            msg.setStandardButtons(QMessageBox.Ok)
+            msg.exec_()
             return
 
+        # Open file with default application
         QDesktopServices.openUrl(QUrl.fromLocalFile(filepath))
 
     def delete_history_item(self, row_index):
@@ -1865,7 +1946,7 @@ class ClipShrApp(QMainWindow):
             self,
             "Confirm Deletion",
             f"Delete history record for:\n\n'{title}'?\n\n"
-            "Note: This will NOT delete the actual file, only the record.",
+            "⚠️ This will NOT delete the actual file, only the record.",
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
         )
@@ -1884,15 +1965,15 @@ class ClipShrApp(QMainWindow):
             return
 
         dialog = QDialog(self)
-        dialog.setWindowTitle("Clear All History & Files")
+        dialog.setWindowTitle("⚠️ Clear All History & Files")
         dialog.setMinimumWidth(500)
 
         layout = QVBoxLayout(dialog)
         layout.setSpacing(15)
 
-        # Warning
+        # Warning message
         warning_label = QLabel(
-            "<b>WARNING: This action cannot be undone!</b><br><br>"
+            "⚠️ <b>WARNING: This action cannot be undone!</b><br><br>"
             "This will permanently delete:<br>"
             "• All download history records<br>"
             "• All downloaded files in the media folder<br><br>"
@@ -1904,7 +1985,7 @@ class ClipShrApp(QMainWindow):
         )
         layout.addWidget(warning_label)
 
-        # Confirmation
+        # Confirmation input
         confirm_label = QLabel("Type <b>DELETE ALL</b> to confirm:")
         layout.addWidget(confirm_label)
 
@@ -1921,14 +2002,14 @@ class ClipShrApp(QMainWindow):
         cancel_btn.clicked.connect(dialog.reject)
         button_layout.addWidget(cancel_btn)
 
-        confirm_btn = QPushButton("Delete Everything")
+        confirm_btn = QPushButton("⚠️ Delete Everything")
         confirm_btn.setObjectName("DangerButton")
         confirm_btn.clicked.connect(dialog.accept)
         button_layout.addWidget(confirm_btn)
 
         layout.addLayout(button_layout)
 
-        # Execute
+        # Execute dialog
         if dialog.exec_() == QDialog.Accepted:
             if confirm_input.text() == "DELETE ALL":
                 deleted_count = 0
@@ -1945,15 +2026,19 @@ class ClipShrApp(QMainWindow):
                         except Exception as e:
                             failed_files.append(f"{filename}: {str(e)}")
 
+                # Clear history database
                 save_db([])
                 self.load_history()
 
-                result_msg = (
-                    f"History cleared successfully!\n\nFiles deleted: {deleted_count}\n"
-                )
+                # Show result
+                result_msg = f"✅ History cleared successfully!\n\n"
+                result_msg += f"Files deleted: {deleted_count}\n"
 
                 if failed_files:
-                    result_msg += f"\nFailed to delete {len(failed_files)} file(s)"
+                    result_msg += f"\n⚠️ Failed to delete {len(failed_files)} file(s):\n"
+                    result_msg += "\n".join(failed_files[:5])
+                    if len(failed_files) > 5:
+                        result_msg += f"\n... and {len(failed_files) - 5} more"
 
                 QMessageBox.information(self, "History Cleared", result_msg)
             else:
@@ -1969,8 +2054,13 @@ class ClipShrApp(QMainWindow):
         """Creates the settings and preferences tab."""
         settings_widget = QWidget()
         main_layout = QVBoxLayout(settings_widget)
-        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setContentsMargins(25, 25, 25, 25)
         main_layout.setSpacing(20)
+
+        # Header
+        header_label = QLabel("⚙️ Application Settings")
+        header_label.setStyleSheet("font-size: 18pt; font-weight: bold;")
+        main_layout.addWidget(header_label)
 
         # Scroll area for settings
         scroll_area = QScrollArea()
@@ -1982,31 +2072,79 @@ class ClipShrApp(QMainWindow):
         scroll_layout.setSpacing(20)
 
         # ===== THEME SETTINGS =====
-        theme_group = QGroupBox("UI Appearance _Color Palette")
+        theme_group = QGroupBox("🎨 Appearance & Theme")
         theme_layout = QVBoxLayout(theme_group)
-        theme_layout.setSpacing(10)
+        theme_layout.setSpacing(12)
 
         theme_info = QLabel("Choose your preferred color theme:")
-        theme_info.setStyleSheet("color: #666666; margin-bottom: 5px;")
+        theme_info.setStyleSheet("color: #666666; margin-bottom: 10px;")
         theme_layout.addWidget(theme_info)
 
         self.theme_radio_group = QButtonGroup(self)
 
         for theme_key, theme_data in PALETTES.items():
-            radio = QRadioButton(f"● {theme_data['name']}")
+            radio_widget = QWidget()
+            radio_layout = QHBoxLayout(radio_widget)
+            radio_layout.setContentsMargins(10, 8, 10, 8)
+            radio_layout.setSpacing(15)
+
+            # Radio button
+            radio = QRadioButton(theme_data["name"])
             radio.setProperty("theme_key", theme_key)
 
             if theme_key == self.config["theme"]:
                 radio.setChecked(True)
 
             self.theme_radio_group.addButton(radio)
-            theme_layout.addWidget(radio)
+            radio_layout.addWidget(radio)
+
+            # Color preview swatches
+            swatch_layout = QHBoxLayout()
+            swatch_layout.setSpacing(4)
+
+            colors = [
+                theme_data["ACCENT_BLUE"],
+                theme_data["ACCENT_GREEN"],
+                theme_data["ACCENT_RED"],
+                theme_data["ACCENT_ORANGE"],
+            ]
+
+            for color in colors:
+                swatch = QLabel()
+                swatch.setFixedSize(24, 24)
+                swatch.setStyleSheet(
+                    f"""
+                    background-color: {color};
+                    border-radius: 4px;
+                    border: 1px solid rgba(0,0,0,0.1);
+                """
+                )
+                swatch_layout.addWidget(swatch)
+
+            radio_layout.addStretch(1)
+            radio_layout.addLayout(swatch_layout)
+
+            # Style the radio container
+            radio_widget.setStyleSheet(
+                f"""
+                QWidget {{
+                    background-color: {theme_data['BG_CARD']};
+                    border: 2px solid {theme_data['BORDER']};
+                    border-radius: 8px;
+                }}
+                QWidget:hover {{
+                    border-color: {theme_data['ACCENT_BLUE']};
+                }}
+            """
+            )
+
+            theme_layout.addWidget(radio_widget)
 
         self.theme_radio_group.buttonClicked.connect(self.change_theme_from_radio)
         scroll_layout.addWidget(theme_group)
 
         # ===== DOWNLOAD FOLDER SETTINGS =====
-        folder_group = QGroupBox("Download Workspace")
+        folder_group = QGroupBox("📁 Download Location")
         folder_layout = QVBoxLayout(folder_group)
         folder_layout.setSpacing(12)
 
@@ -2021,28 +2159,114 @@ class ClipShrApp(QMainWindow):
         self.folder_path_label.setReadOnly(True)
         folder_row.addWidget(self.folder_path_label, 3)
 
-        self.change_folder_button = QPushButton("Change Folder")
+        self.change_folder_button = QPushButton("📂 Change Folder")
         self.change_folder_button.setObjectName("SecondaryButton")
-        self.change_folder_button.setMinimumWidth(130)
+        self.change_folder_button.setMinimumWidth(140)
         self.change_folder_button.clicked.connect(self.change_download_folder)
         folder_row.addWidget(self.change_folder_button)
+
+        self.open_folder_button = QPushButton("🔗 Open Folder")
+        self.open_folder_button.setMinimumWidth(120)
+        self.open_folder_button.clicked.connect(self.open_media_folder)
+        folder_row.addWidget(self.open_folder_button)
 
         folder_layout.addLayout(folder_row)
         scroll_layout.addWidget(folder_group)
 
         # ===== DOWNLOAD PREFERENCES =====
-        prefs_group = QGroupBox("Download Preferences")
+        prefs_group = QGroupBox("🔧 Download Preferences")
         prefs_layout = QVBoxLayout(prefs_group)
-        prefs_layout.setSpacing(12)
+        prefs_layout.setSpacing(15)
 
+        # Metadata embedding checkbox
         self.compress_checkbox = QCheckBox(
-            "Default: Embed metadata and optimize for compression (Recommended for final files)."
+            "Embed metadata and optimize files (Recommended)"
         )
         self.compress_checkbox.setChecked(self.config.get("default_compress", True))
         self.compress_checkbox.stateChanged.connect(self.save_download_preferences)
+
+        compress_info = QLabel(
+            "   ℹ️ Embeds title, artist, and thumbnail into downloaded media files"
+        )
+        compress_info.setStyleSheet(
+            "color: #666666; font-size: 9pt; margin-left: 20px;"
+        )
+
         prefs_layout.addWidget(self.compress_checkbox)
+        prefs_layout.addWidget(compress_info)
 
         scroll_layout.addWidget(prefs_group)
+
+        # ===== SYSTEM INFO =====
+        info_group = QGroupBox("💻 System Information")
+        info_layout = QVBoxLayout(info_group)
+        info_layout.setSpacing(10)
+
+        # Check FFmpeg availability
+        ffmpeg_available = self.check_ffmpeg()
+        ffmpeg_status = "✅ Installed" if ffmpeg_available else "❌ Not Found"
+        ffmpeg_color = "#27AE60" if ffmpeg_available else "#E74C3C"
+
+        info_items = [
+            ("FFmpeg Status:", ffmpeg_status, ffmpeg_color),
+            ("Media Folder:", self.media_folder, None),
+            ("App Version:", "v2.0.0 - Professional Edition", None),
+        ]
+
+        for label_text, value_text, color in info_items:
+            item_layout = QHBoxLayout()
+
+            label = QLabel(label_text)
+            label.setStyleSheet("font-weight: 600; min-width: 150px;")
+            item_layout.addWidget(label)
+
+            value = QLabel(value_text)
+            if color:
+                value.setStyleSheet(f"color: {color}; font-weight: 600;")
+            else:
+                value.setStyleSheet("color: #666666;")
+            value.setWordWrap(True)
+            item_layout.addWidget(value, 1)
+
+            info_layout.addLayout(item_layout)
+
+        if not ffmpeg_available:
+            ffmpeg_help = QLabel(
+                "⚠️ FFmpeg is required for BEST QUALITY downloads and trimming. "
+                "<a href='https://ffmpeg.org/download.html' style='color: #3498DB;'>Download FFmpeg</a>"
+            )
+            ffmpeg_help.setOpenExternalLinks(True)
+            ffmpeg_help.setWordWrap(True)
+            ffmpeg_help.setStyleSheet(
+                "padding: 10px; background-color: #FFF3CD; border-radius: 6px;"
+            )
+            info_layout.addWidget(ffmpeg_help)
+
+        scroll_layout.addWidget(info_group)
+
+        # ===== ABOUT SECTION =====
+        about_group = QGroupBox("ℹ️ About ClipShr")
+        about_layout = QVBoxLayout(about_group)
+
+        about_text = QLabel(
+            "<p style='line-height: 1.6;'>"
+            "<b>ClipShr</b> is a professional media downloader that supports "
+            "YouTube, Vimeo, and 1000+ websites.<br><br>"
+            "<b>Features:</b><br>"
+            "• High-quality video and audio downloads<br>"
+            "• Multiple format options<br>"
+            "• Media trimming and clipping<br>"
+            "• Download history tracking<br>"
+            "• Beautiful themes<br><br>"
+            "Built with PyQt5 and yt-dlp<br>"
+            "© 2025 ClipShr - All Rights Reserved"
+            "</p>"
+        )
+        about_text.setWordWrap(True)
+        about_text.setStyleSheet("color: #666666; padding: 10px;")
+        about_layout.addWidget(about_text)
+
+        scroll_layout.addWidget(about_group)
 
         scroll_layout.addStretch(1)
         scroll_area.setWidget(scroll_content)
@@ -2055,6 +2279,11 @@ class ClipShrApp(QMainWindow):
         theme_key = radio_button.property("theme_key")
         if theme_key:
             self.apply_theme(theme_key)
+
+            # Visual feedback
+            self.statusBar().showMessage(
+                f"✅ Theme changed to: {PALETTES[theme_key]['name']}", 3000
+            )
 
     def change_download_folder(self):
         """Opens dialog to select a new download folder."""
@@ -2073,13 +2302,21 @@ class ClipShrApp(QMainWindow):
             self.media_folder = new_folder
             self.folder_path_label.setText(new_folder)
 
+            # Ensure folder exists
             Path(new_folder).mkdir(exist_ok=True)
 
             QMessageBox.information(
                 self,
                 "Folder Changed",
-                f"Download folder successfully changed to:\n\n{new_folder}",
+                f"✅ Download folder successfully changed to:\n\n{new_folder}",
             )
+
+    def open_media_folder(self):
+        """Opens the media folder in file explorer."""
+        if not os.path.exists(self.media_folder):
+            Path(self.media_folder).mkdir(exist_ok=True)
+
+        QDesktopServices.openUrl(QUrl.fromLocalFile(self.media_folder))
 
     def save_download_preferences(self):
         """Saves download preference changes."""
@@ -2101,7 +2338,7 @@ class ClipShrApp(QMainWindow):
 
     def on_tab_change(self, index):
         """Handles tab changes (refresh history when switching to History tab)."""
-        if self.tab_widget.tabText(index) == "History":
+        if self.tab_widget.tabText(index) == "📜 History":
             self.load_history()
 
     def resizeEvent(self, event):
